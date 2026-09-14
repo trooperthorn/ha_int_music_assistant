@@ -1,17 +1,29 @@
 {
   "domain": "music_assistant",
   "name": "Music Assistant",
-  "after_dependencies": ["media_source"],
-  "codeowners": ["@trooperthorn"],
+  "after_dependencies": [
+    "media_source"
+  ],
+  "codeowners": [
+    "@trooperthorn"
+  ],
   "config_flow": true,
-  "dependencies": ["auth"],
+  "dependencies": [
+    "auth"
+  ],
   "documentation": "https://github.com/trooperthorn/ha_int_music_assistant",
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/trooperthorn/ha_int_music_assistant/issues",
-  "loggers": ["music_assistant"],
+  "loggers": [
+    "music_assistant"
+  ],
   "quality_scale": "platinum",
-  "requirements": ["music-assistant-client==1.5.1"],
-  "version": "2026.09.13.1",
-  "zeroconf": ["_mass._tcp.local."]
+  "requirements": [
+    "music-assistant-client==1.5.1"
+  ],
+  "version": "2026.09.13.2",
+  "zeroconf": [
+    "_mass._tcp.local."
+  ]
 }
