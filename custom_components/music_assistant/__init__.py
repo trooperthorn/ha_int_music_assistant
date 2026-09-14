@@ -19,7 +19,11 @@ from homeassistant.exceptions import (
     ConfigEntryError,
     ConfigEntryNotReady,
 )
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.issue_registry import (
     IssueSeverity,
@@ -33,7 +37,7 @@ from music_assistant_client.exceptions import (
     MusicAssistantClientException,
 )
 from music_assistant_models.config_entries import PlayerConfig
-from music_assistant_models.enums import EventType
+from music_assistant_models.enums import EventType, IdentifierType
 from music_assistant_models.errors import (
     ActionUnavailable,
     AuthenticationFailed,
@@ -225,6 +229,7 @@ async def async_setup_entry(
 
     def add_player(player: Player) -> None:
         """Handle adding Player from MA as HA device + entities."""
+        _migrate_player_identity(hass, entry, player)
         entry.runtime_data.discovered_players.add(player.player_id)
         for callback in entry.runtime_data.platform_handlers.values():
             callback(player.player_id)
@@ -294,6 +299,68 @@ async def async_setup_entry(
                 dev_reg.async_remove_device(device.id)
 
     return True
+
+
+def _migrate_player_identity(
+    hass: HomeAssistant, entry: ConfigEntry, player: Player
+) -> None:
+    """Carry a device and its entities over to a player id that changed.
+
+    The server derives some player ids from what the device advertises, and
+    a device that speaks several protocols (WiiM over AirPlay and its own
+    protocol) can come back under a different id after an update. The MAC
+    address is stable, so a device in this entry that carries the same MAC
+    under another id is renamed to the new id, along with the unique ids of
+    its entities.
+    """
+    mac = player.device_info.identifiers.get(IdentifierType.MAC_ADDRESS)
+    if not mac:
+        return
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_device_by_connection(
+        (dr.CONNECTION_NETWORK_MAC, dr.format_mac(mac)), entry.entry_id
+    )
+    if device is None:
+        return
+    old_id = next(
+        (
+            identifier[1]
+            for identifier in device.identifiers
+            if identifier[0] == DOMAIN and identifier[1] != player.player_id
+        ),
+        None,
+    )
+    if old_id is None or (DOMAIN, player.player_id) in device.identifiers:
+        return
+    if mass_has_player(entry, old_id):
+        return
+    LOGGER.info(
+        "Player %s changed its id from %s to %s; keeping its device and entities",
+        player.name,
+        old_id,
+        player.player_id,
+    )
+    dev_reg.async_update_device(
+        device.id, new_identifiers={(DOMAIN, player.player_id)}
+    )
+    ent_reg = er.async_get(hass)
+    for entity in er.async_entries_for_device(ent_reg, device.id, True):
+        if entity.platform != DOMAIN:
+            continue
+        if entity.unique_id == old_id:
+            new_unique_id = player.player_id
+        elif entity.unique_id.startswith(f"{old_id}_"):
+            new_unique_id = f"{player.player_id}{entity.unique_id[len(old_id):]}"
+        else:
+            continue
+        ent_reg.async_update_entity(entity.entity_id, new_unique_id=new_unique_id)
+    entry.runtime_data.discovered_players.discard(old_id)
+
+
+def mass_has_player(entry: ConfigEntry, player_id: str) -> bool:
+    """Return whether the server still knows a player by this id."""
+    runtime: MusicAssistantEntryData = entry.runtime_data
+    return runtime.mass.players.get(player_id) is not None
 
 
 async def _client_listen(

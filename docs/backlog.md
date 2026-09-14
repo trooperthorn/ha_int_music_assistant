@@ -21,3 +21,15 @@ Dated open items.
   pass; recorded in the README as the state of testing.
 - GitHub App private key for zero-touch version bumps: Sean sets
   `RELEASE_AUTOMATION_PRIVATE_KEY` himself; until then the bump PR is manual.
+
+## 2026-09-14
+
+- Genre browsing and a genre filter on `get_library` (feature-requests#2074):
+  the server exposes `music/genres/overview`, `tracks`, and `albums`; client
+  1.5.1 wraps none of it, so this needs raw commands or a client bump. Adds a
+  browse section.
+- Voice: a radio option for the search-and-play intent lives in OHF-Voice,
+  not here; stations are reachable through the `channel` class once that
+  exists.
+- Live check of the group release behaviour against Sonos on El Rancho
+  Assist.

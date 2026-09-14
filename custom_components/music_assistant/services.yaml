@@ -156,10 +156,50 @@ search:
           default: false
           selector:
             boolean:
+        providers:
+          example: "spotify"
+          selector:
+            text:
+              multiple: true
     username:
       example: "john"
       selector:
         text:
+
+get_providers:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: music_assistant
+
+sync_library:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: music_assistant
+    media_types:
+      example: "podcast"
+      selector:
+        select:
+          multiple: true
+          translation_key: media_type
+          options:
+            - artist
+            - album
+            - audiobook
+            - playlist
+            - podcast
+            - track
+            - radio
+    providers:
+      example: "podcastfeed--abc123"
+      selector:
+        text:
+          multiple: true
 
 get_library:
   fields:

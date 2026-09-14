@@ -246,7 +246,7 @@ class MusicAssistantPlayer(MusicAssistantEntity, MediaPlayerEntity):
         player = self.player
         active_queue = self.active_queue
         # update generic attributes
-        if player.powered and player.playback_state is not None:
+        if player.powered is not False and player.playback_state is not None:
             self._attr_state = MediaPlayerState(player.playback_state.value)
         else:
             self._attr_state = MediaPlayerState(STATE_OFF)
@@ -578,16 +578,8 @@ class MusicAssistantPlayer(MusicAssistantEntity, MediaPlayerEntity):
                     translation_placeholders={"media_id": ", ".join(media_id)},
                 )
 
-            # determine active queue to send the play request to
-            if TYPE_CHECKING:
-                assert self.player.active_source is not None
-            if queue := self.mass.player_queues.get(self.player.active_source):
-                queue_id = queue.queue_id
-            else:
-                queue_id = self.player_id
-
             await self.mass.player_queues.play_media(
-                queue_id,
+                self.player_id,
                 media=media_uris,
                 option=self._convert_queueoption_to_media_player_enqueue(enqueue),
                 radio_mode=radio_mode or False,

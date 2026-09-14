@@ -7,11 +7,29 @@
     }
   },
   "services": {
-    "get_library": { "service": "mdi:music-box-multiple" },
-    "get_queue": { "service": "mdi:playlist-music" },
-    "play_announcement": { "service": "mdi:bullhorn" },
-    "play_media": { "service": "mdi:play" },
-    "search": { "service": "mdi:magnify" },
-    "transfer_queue": { "service": "mdi:transfer" }
+    "get_library": {
+      "service": "mdi:music-box-multiple"
+    },
+    "get_queue": {
+      "service": "mdi:playlist-music"
+    },
+    "play_announcement": {
+      "service": "mdi:bullhorn"
+    },
+    "play_media": {
+      "service": "mdi:play"
+    },
+    "search": {
+      "service": "mdi:magnify"
+    },
+    "transfer_queue": {
+      "service": "mdi:transfer"
+    },
+    "get_providers": {
+      "service": "mdi:cloud-check"
+    },
+    "sync_library": {
+      "service": "mdi:sync"
+    }
   }
 }

@@ -49,7 +49,7 @@ LIBRARY_MEDIA_CLASS_MAP = {
     LIBRARY_ALBUMS: MediaClass.ALBUM,
     LIBRARY_TRACKS: MediaClass.TRACK,
     LIBRARY_PLAYLISTS: MediaClass.PLAYLIST,
-    LIBRARY_RADIO: MediaClass.MUSIC,  # radio is not accepted by HA
+    LIBRARY_RADIO: MediaClass.CHANNEL,
     LIBRARY_PODCASTS: MediaClass.PODCAST,
     LIBRARY_AUDIOBOOKS: MediaClass.DIRECTORY,  # audiobook is not accepted by HA
 }
@@ -80,6 +80,7 @@ MEDIA_CLASS_MASS_MEDIA_TYPE_MAP = {
     # request, so it has to mean music rather than the radio stations we
     # happen to hand back to HA under the same class
     MediaClass.MUSIC: MUSIC_MASS_MEDIA_TYPES,
+    MediaClass.CHANNEL: [MASSMediaType.RADIO],
     MediaClass.DIRECTORY: [MASSMediaType.AUDIOBOOK],
     MediaClass.PODCAST: [MASSMediaType.PODCAST],
 }
@@ -684,6 +685,24 @@ def _get_media_class_for_type(media_type: str) -> MediaClass | None:
     return mapping.get(media_type)
 
 
+def _exact_matches_first(
+    items: list[BrowseMedia], search_query: str
+) -> list[BrowseMedia]:
+    """Move items whose title equals the query to the front, order kept otherwise.
+
+    A caller that plays the first result (the voice assistant) otherwise gets
+    the first track that merely contains the words, ahead of the radio
+    station or playlist the user named exactly.
+    """
+    wanted = search_query.strip().casefold()
+    if not wanted:
+        return items
+    exact = [item for item in items if item.title.casefold() == wanted]
+    if not exact:
+        return items
+    return exact + [item for item in items if item.title.casefold() != wanted]
+
+
 async def async_search_media(
     mass: MusicAssistantClient,
     query: SearchMediaQuery,
@@ -722,9 +741,8 @@ async def async_search_media(
                 search_query, media_types=media_types, limit=limit
             )
 
-        # Process the search results
         result = _process_search_results(mass, search_results, media_types)
-        return SearchMedia(result=result)
+        return SearchMedia(result=_exact_matches_first(result, search_query))
 
     except Exception as err:
         LOGGER.debug(
