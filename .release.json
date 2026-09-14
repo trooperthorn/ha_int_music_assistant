@@ -1,0 +1,18 @@
+{
+  "tag_prefix": "v",
+  "timezone": "America/Chicago",
+  "release_paths": [
+    "custom_components/music_assistant"
+  ],
+  "version_fields": [
+    {
+      "path": "custom_components/music_assistant/manifest.json",
+      "kind": "json",
+      "key": "version"
+    }
+  ],
+  "archive": {
+    "source": "custom_components/music_assistant",
+    "name": "music_assistant.zip"
+  }
+}
