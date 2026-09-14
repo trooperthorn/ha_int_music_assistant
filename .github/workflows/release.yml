@@ -137,7 +137,6 @@ jobs:
           fi
           gh release upload "$TAG" \
             dist/music_assistant.zip \
-            "dist/$WHEEL" \
             dist/music_assistant.spdx.json \
             dist/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" \
