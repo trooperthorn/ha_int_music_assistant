@@ -898,7 +898,13 @@ async def test_finish_auth_reauth_source(
     mock_get_server_info: AsyncMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Test finish_auth updates entry when source is reauth."""
+    """Test finish_auth updates entry when source is reauth.
+
+    The flow object is driven directly, so the entry update it makes is not
+    followed by the flow manager's own settle; the delayed store write and
+    the scheduled reload are drained here before the harness checks for
+    lingering work.
+    """
     mock_config_entry.add_to_hass(hass)
 
     flow = MusicAssistantConfigFlow()
@@ -916,6 +922,9 @@ async def test_finish_auth_reauth_source(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert mock_config_entry.data[CONF_TOKEN] == "new_long_lived_token"
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
 
 
 @pytest.mark.parametrize(
