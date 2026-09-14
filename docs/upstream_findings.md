@@ -76,3 +76,24 @@ this fork depends on them. Three points where they touch:
 - `music-assistant-client` stays at the exact pin core uses. It is not in
   core's `package_constraints.txt`, so an exact pin is safe (see the
   ha-dev-current contract on core-constrained requirements).
+
+## Open core issues and feature requests, reviewed 2026-09-14
+
+Sources: the open issues labelled `integration: music_assistant` in
+home-assistant/core and the discussions with that label in
+home-assistant/feature-requests, read together with the server code in
+`~/repos/music-assistant-server` (schema 72) and client 1.5.1. "Changes
+behaviour" marks anything a user notices in a workflow or on screen.
+
+| Ref | Report | Cause | Fork | Changes behaviour | Test |
+|---|---|---|---|---|---|
+| core#179724 | "Play Media overrides active group" does nothing from HA | Integration. The server applies the option in `players/cmd/play_media`, but `_async_handle_play_media` pre-resolved the target to the group leader's queue, so the server never saw a play on the member. | Play is sent to the member's own queue; the server decides. | Yes: with the server option on (its default) a play on a grouped member from HA releases it from the group instead of playing on the group. | `test_play_media_targets_the_players_own_queue` |
+| core#179255 | Player stays idle or off while playing | Sonos "idle": server provider state, not addressable here. Squeezebox "off": the entity was `off` whenever `powered` was falsy, and the server reports `powered=None` when power control is set to "none". | `None` is treated as no power concept and the entity follows playback state. | Yes: players with power control "none" show idle, playing, paused instead of a permanent off. | `test_player_without_power_concept_follows_playback` |
+| core#179557 | Search-and-play never finds radio stations | Since core#173602 the music class deliberately excludes radio, and Home Assistant has no radio class; a search without a class returns tracks before radio and the assistant plays the first result. | Radio stations carry the `channel` media class in browse and search, and an item whose title equals the query is ranked first. | Yes: the radio section in the media browser shows the channel class. The voice intent still needs a radio option upstream (OHF-Voice). | `test_radio_listing_uses_channel_class`, `test_exact_title_match_ranks_first` |
+| core#181304 | WiiM AirPlay entity ids change with every update | Server. The player id derives from the AirPlay mDNS name and flips between the AirPlay id and the WiiM id depending on which protocol wraps the other. | Mitigation: on player added, a device in this entry with the same MAC address under another id is renamed to the new id together with its entities' unique ids, provided the old id is no longer a live player. | Yes, silently: entity ids and device survive; nothing visible changes. | `test_player_id_change_*` |
+| fr#4621 | `get_providers` action | Client already holds the provider list. | Added. | New action. | `test_get_providers_action` |
+| fr#1718 | Library sync action | Client has `start_sync`. | Added as `sync_library` with optional media types and providers. | New action. | `test_sync_library_action` |
+| fr#2757 | Search filter by provider | Server `music/search` takes `providers` (and deprecates `library_only`); client 1.5.1 does not pass it. | Added a `providers` field; when set, the raw command is sent. | New field on the search action. | `test_search_with_provider_filter` |
+| fr#2074 | Genre browsing and filtering | Server has a genre API (`music/genres/*`); client 1.5.1 wraps none of it. | Not done; in `backlog.md`. | Would add a browse section. | |
+| fr#3708 | Provider URL position in the playlist view | Server frontend. | Out of scope; the library-manager frontend's selected-item pane already shows it. | | |
+| fr#1751 | One generic player plus select, text, and button helpers | Re-architecture that duplicates every player as dashboard helpers. | Declined. | | |

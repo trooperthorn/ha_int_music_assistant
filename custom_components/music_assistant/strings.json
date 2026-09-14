@@ -520,7 +520,7 @@
           "name": "Music Assistant instance"
         },
         "library_only": {
-          "description": "Only include results that are in the library.",
+          "description": "Only include results that are in the library. Superseded by the Providers field with the value library.",
           "name": "Only library items"
         },
         "limit": {
@@ -538,6 +538,10 @@
         "username": {
           "description": "Music Assistant username used for searching. Searches respect the user's configured provider filters.",
           "name": "Username"
+        },
+        "providers": {
+          "name": "Providers",
+          "description": "Restrict the search to these provider instance ids or domains. The special value library selects the library. Omit to search the library and every available provider."
         }
       },
       "name": "Search Music Assistant",
@@ -560,6 +564,34 @@
         }
       },
       "name": "Transfer queue"
+    },
+    "get_providers": {
+      "name": "Get providers",
+      "description": "Returns the providers configured on the Music Assistant server with their type and availability.",
+      "fields": {
+        "config_entry_id": {
+          "name": "[%key:component::music_assistant::services::search::fields::config_entry_id::name%]",
+          "description": "[%key:component::music_assistant::services::search::fields::config_entry_id::description%]"
+        }
+      }
+    },
+    "sync_library": {
+      "name": "Sync library",
+      "description": "Starts a library sync on the Music Assistant server for all or selected providers and media types.",
+      "fields": {
+        "config_entry_id": {
+          "name": "[%key:component::music_assistant::services::search::fields::config_entry_id::name%]",
+          "description": "[%key:component::music_assistant::services::search::fields::config_entry_id::description%]"
+        },
+        "media_types": {
+          "name": "Media types",
+          "description": "Only sync these media types. Omit for all."
+        },
+        "providers": {
+          "name": "Providers",
+          "description": "Only sync these provider instance ids. Omit for all."
+        }
+      }
     }
   }
 }

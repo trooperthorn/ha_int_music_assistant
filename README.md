@@ -114,7 +114,27 @@ Platform | What
 `number`, `select`, `switch`, `text` | Player options the server publishes (bass, treble, sound field, sleep timer, and so on); the less common ones are disabled by default.
 
 Actions: `music_assistant.play_media`, `play_announcement`, `transfer_queue`,
-`get_queue`, `search`, and `get_library`, unchanged from core.
+`get_queue`, `search`, and `get_library` as in core, plus `get_providers`
+(the configured providers with type and availability) and `sync_library`
+(start a library sync for all or selected providers and media types).
+`search` gains a `providers` filter.
+
+## Behaviour that differs from core on purpose
+
+- Playing media on a player that is part of a group is sent to that player,
+  so the server's "Play Media overrides active group" setting works from
+  Home Assistant; with it on (the server default) the player leaves the
+  group and plays alone. Turn the setting off in Music Assistant to keep
+  the old redirect-to-group behaviour.
+- A player whose power control is set to "none" follows its playback state
+  instead of showing off.
+- Radio stations use the channel media class in the media browser and in
+  search, and a search result whose title matches the query exactly is
+  returned first.
+- A player that comes back under a different id but the same MAC address
+  keeps its device and entity ids.
+
+The reasoning for each is in [docs/upstream_findings.md](docs/upstream_findings.md).
 
 ## Releases
 

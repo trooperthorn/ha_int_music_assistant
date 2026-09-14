@@ -6,7 +6,7 @@ from homeassistant.components.media_player import (
     ATTR_MEDIA_ENQUEUE,
     DOMAIN as MEDIA_PLAYER_DOMAIN,
 )
-from homeassistant.const import ATTR_CONFIG_ENTRY_ID
+from homeassistant.const import ATTR_CONFIG_ENTRY_ID, ATTR_NAME
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -17,6 +17,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, service
 from music_assistant_models.enums import AlbumType, MediaType, QueueOption
+from music_assistant_models.media_items import SearchResults
 import voluptuous as vol
 
 from .const import (
@@ -29,17 +30,23 @@ from .const import (
     ATTR_ARTISTS,
     ATTR_AUDIOBOOKS,
     ATTR_AUTO_PLAY,
+    ATTR_AVAILABLE,
+    ATTR_DOMAIN,
     ATTR_FAVORITE,
+    ATTR_INSTANCE_ID,
+    ATTR_IS_STREAMING_PROVIDER,
     ATTR_ITEMS,
     ATTR_LIBRARY_ONLY,
     ATTR_LIMIT,
     ATTR_MEDIA_ID,
     ATTR_MEDIA_TYPE,
+    ATTR_MEDIA_TYPES,
     ATTR_OFFSET,
     ATTR_ORDER_BY,
     ATTR_PLAYLISTS,
     ATTR_PODCASTS,
     ATTR_PRE_ANNOUNCE_URL,
+    ATTR_PROVIDERS,
     ATTR_RADIO,
     ATTR_RADIO_MODE,
     ATTR_SEARCH,
@@ -48,6 +55,7 @@ from .const import (
     ATTR_SEARCH_NAME,
     ATTR_SOURCE_PLAYER,
     ATTR_TRACKS,
+    ATTR_TYPE,
     ATTR_URL,
     ATTR_USE_PRE_ANNOUNCE,
     ATTR_USERNAME,
@@ -56,6 +64,7 @@ from .const import (
 from .helpers import catch_user_not_found, get_music_assistant_client
 from .schemas import (
     LIBRARY_RESULTS_SCHEMA,
+    PROVIDERS_SCHEMA,
     SEARCH_RESULT_SCHEMA,
     media_item_dict_from_mass_item,
 )
@@ -77,6 +86,8 @@ SERVICE_PLAY_MEDIA_ADVANCED = "play_media"
 SERVICE_PLAY_ANNOUNCEMENT = "play_announcement"
 SERVICE_TRANSFER_QUEUE = "transfer_queue"
 SERVICE_GET_QUEUE = "get_queue"
+SERVICE_GET_PROVIDERS = "get_providers"
+SERVICE_SYNC_LIBRARY = "sync_library"
 
 DEFAULT_OFFSET = 0
 DEFAULT_LIMIT = 25
@@ -101,10 +112,32 @@ def register_actions(hass: HomeAssistant) -> None:
                 vol.Optional(ATTR_SEARCH_ALBUM): cv.string,
                 vol.Optional(ATTR_LIMIT, default=5): vol.Coerce(int),
                 vol.Optional(ATTR_LIBRARY_ONLY, default=False): cv.boolean,
+                vol.Optional(ATTR_PROVIDERS): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_USERNAME): cv.string,
             }
         ),
         supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_PROVIDERS,
+        handle_get_providers,
+        schema=vol.Schema({vol.Required(ATTR_CONFIG_ENTRY_ID): str}),
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SYNC_LIBRARY,
+        handle_sync_library,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_CONFIG_ENTRY_ID): str,
+                vol.Optional(ATTR_MEDIA_TYPES): vol.All(
+                    cv.ensure_list, [vol.Coerce(MediaType)]
+                ),
+                vol.Optional(ATTR_PROVIDERS): vol.All(cv.ensure_list, [cv.string]),
+            }
+        ),
     )
     hass.services.async_register(
         DOMAIN,
@@ -194,14 +227,28 @@ async def handle_search(call: ServiceCall) -> ServiceResponse:
         search_name = f"{search_album} - {search_name}"
     elif search_artist:
         search_name = f"{search_artist} - {search_name}"
+    providers = call.data.get(ATTR_PROVIDERS)
     with catch_user_not_found(search_username):
-        search_results = await mass.music.search(
-            search_query=search_name,
-            media_types=call.data.get(ATTR_MEDIA_TYPE, MediaType.ALL),
-            limit=call.data[ATTR_LIMIT],
-            library_only=call.data[ATTR_LIBRARY_ONLY],
-            user=search_username,
-        )
+        if providers:
+            search_results = SearchResults.from_dict(
+                await mass.send_command(
+                    "music/search",
+                    search_query=search_name,
+                    media_types=call.data.get(ATTR_MEDIA_TYPE, MediaType.ALL),
+                    limit=call.data[ATTR_LIMIT],
+                    providers=providers,
+                    user=search_username,
+                    require_schema=35 if search_username else None,
+                )
+            )
+        else:
+            search_results = await mass.music.search(
+                search_query=search_name,
+                media_types=call.data.get(ATTR_MEDIA_TYPE, MediaType.ALL),
+                limit=call.data[ATTR_LIMIT],
+                library_only=call.data[ATTR_LIBRARY_ONLY],
+                user=search_username,
+            )
     response: ServiceResponse = SEARCH_RESULT_SCHEMA(
         {
             ATTR_ARTISTS: [
@@ -235,6 +282,36 @@ async def handle_search(call: ServiceCall) -> ServiceResponse:
         }
     )
     return response
+
+
+async def handle_get_providers(call: ServiceCall) -> ServiceResponse:
+    """Return the providers configured on the server."""
+    mass = get_music_assistant_client(call.hass, call.data[ATTR_CONFIG_ENTRY_ID])
+    response: ServiceResponse = PROVIDERS_SCHEMA(
+        {
+            ATTR_PROVIDERS: [
+                {
+                    ATTR_INSTANCE_ID: provider.instance_id,
+                    ATTR_DOMAIN: provider.domain,
+                    ATTR_NAME: provider.name,
+                    ATTR_TYPE: provider.type.value,
+                    ATTR_AVAILABLE: provider.available,
+                    ATTR_IS_STREAMING_PROVIDER: provider.is_streaming_provider,
+                }
+                for provider in mass.providers
+            ]
+        }
+    )
+    return response
+
+
+async def handle_sync_library(call: ServiceCall) -> None:
+    """Start a library sync on the server."""
+    mass = get_music_assistant_client(call.hass, call.data[ATTR_CONFIG_ENTRY_ID])
+    await mass.music.start_sync(
+        media_types=call.data.get(ATTR_MEDIA_TYPES),
+        providers=call.data.get(ATTR_PROVIDERS),
+    )
 
 
 async def handle_get_library(call: ServiceCall) -> ServiceResponse:

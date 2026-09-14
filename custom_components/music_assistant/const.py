@@ -72,6 +72,13 @@ ATTR_FANART_IMAGE = "fanart_image"
 ATTR_USERNAME = "username"
 
 ATTR_CONF_EXPOSE_PLAYER_TO_HA = "expose_player_to_ha"
+ATTR_PROVIDERS = "providers"
+ATTR_MEDIA_TYPES = "media_types"
+ATTR_INSTANCE_ID = "instance_id"
+ATTR_DOMAIN = "domain"
+ATTR_TYPE = "type"
+ATTR_AVAILABLE = "available"
+ATTR_IS_STREAMING_PROVIDER = "is_streaming_provider"
 
 LOGGER = logging.getLogger(__package__)
 

@@ -88,3 +88,42 @@ merge can repeat it mechanically.
 "update listener plus reload" rule; this integration registers no update
 listener, so the reload-in-flow stays. The `hacs` minimum-version key is
 documented in hacs-documentation `publish/start.md` and stays.
+
+## 2026-09-14, play media goes to the player's own queue
+
+Core resolved a play on a grouped member to the group leader's queue on the
+Home Assistant side, which made the server's "Play Media overrides active
+group" setting unreachable from Home Assistant (core#179724). The server's
+`players/cmd/play_media` already implements both behaviours behind that
+setting, so the integration now names the player it was asked to play on
+and leaves the choice to the server. Rejected: reading the setting through
+the config API and resolving in the integration, which duplicates server
+logic and races config changes.
+
+## 2026-09-14, identity migration by MAC address only
+
+The mitigation for core#181304 renames a device and its entities to a new
+player id only when the new player carries the same MAC address and the
+old id is no longer a live player on the server. Both conditions are
+needed: WiiM devices expose two live players (AirPlay and native) with one
+MAC while both protocols are enabled, and merging those would collapse two
+real players. Rejected: matching on name, which users change freely, and
+matching on the serial number alone, which fewer providers publish.
+
+## 2026-09-14, radio stations as channels
+
+Home Assistant has no radio media class. Core used `music` for the radio
+listing and then had to exclude radio from `music` searches so voice
+requests for music would not return stations (core#173602), leaving no way
+to ask for a station. `channel` is the class Home Assistant uses for
+broadcast sources, so stations are listed and searched under it. Rejected:
+reintroducing radio under `music`, which reopens core#173602.
+
+## 2026-09-14, provider filter through the raw search command
+
+Client 1.5.1 does not pass `providers` to `music/search` although the
+server accepts it (and marks `library_only` deprecated). When the field is
+set the integration sends the command itself and parses the result with
+the models package; otherwise it keeps using the client method so the
+existing tests and behaviour stay untouched. Revisit when the client pin
+moves.

@@ -14,18 +14,22 @@ from .const import (
     ATTR_ALBUMS,
     ATTR_ARTISTS,
     ATTR_AUDIOBOOKS,
+    ATTR_AVAILABLE,
     ATTR_BIT_DEPTH,
     ATTR_BITRATE,
     ATTR_CONTENT_TYPE,
     ATTR_CURRENT_INDEX,
     ATTR_CURRENT_ITEM,
     ATTR_DISCART_IMAGE,
+    ATTR_DOMAIN,
     ATTR_DURATION,
     ATTR_ELAPSED_TIME,
     ATTR_EXPLICIT,
     ATTR_FANART_IMAGE,
     ATTR_FAVORITE,
     ATTR_IMAGE,
+    ATTR_INSTANCE_ID,
+    ATTR_IS_STREAMING_PROVIDER,
     ATTR_ITEM_ID,
     ATTR_ITEMS,
     ATTR_LIMIT,
@@ -37,6 +41,7 @@ from .const import (
     ATTR_PLAYLISTS,
     ATTR_PODCASTS,
     ATTR_PROVIDER,
+    ATTR_PROVIDERS,
     ATTR_QUEUE_ID,
     ATTR_QUEUE_ITEM_ID,
     ATTR_RADIO,
@@ -46,6 +51,7 @@ from .const import (
     ATTR_STREAM_DETAILS,
     ATTR_STREAM_TITLE,
     ATTR_TRACKS,
+    ATTR_TYPE,
     ATTR_URI,
     ATTR_VERSION,
 )
@@ -207,6 +213,19 @@ def queue_item_dict_from_mass_item(
 
     return result
 
+
+PROVIDER_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_INSTANCE_ID): str,
+        vol.Required(ATTR_DOMAIN): str,
+        vol.Required(ATTR_NAME): str,
+        vol.Required(ATTR_TYPE): str,
+        vol.Required(ATTR_AVAILABLE): bool,
+        vol.Required(ATTR_IS_STREAMING_PROVIDER): vol.Any(None, bool),
+    }
+)
+
+PROVIDERS_SCHEMA = vol.Schema({vol.Required(ATTR_PROVIDERS): [PROVIDER_SCHEMA]})
 
 QUEUE_DETAILS_SCHEMA = vol.Schema(
     {
