@@ -139,7 +139,6 @@ jobs:
             dist/music_assistant.zip \
             "dist/$WHEEL" \
             dist/music_assistant.spdx.json \
-            dist/elk_programmer.spdx.json \
             dist/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
