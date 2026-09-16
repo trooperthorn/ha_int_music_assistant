@@ -22,7 +22,7 @@
   "requirements": [
     "music-assistant-client==1.5.1"
   ],
-  "version": "2026.09.13.2",
+  "version": "2026.09.16.1",
   "zeroconf": [
     "_mass._tcp.local."
   ]
