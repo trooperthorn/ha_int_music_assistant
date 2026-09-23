@@ -72,6 +72,8 @@ From `frontend/mobile`, run `npm ci` and `npm run build`. The build bundles Lit 
 
 The branch is intended for a separate test Home Assistant instance. Installing it replaces the normal `music_assistant` integration code for that instance and adds a Music sidebar entry; it does not install into the owner's running instance automatically.
 
+HACS now installs the integration directory from a tagged repository tree; `hacs.json` no longer requests `music_assistant.zip`. HACS normally offers published releases and the repository's default branch, not the untagged `Mobile` branch. An isolated HACS test of these changes therefore needs a prerelease tag pointing to a reviewed `Mobile` commit and beta versions enabled in that test HACS instance. No test prerelease has been published, and the main-only release workflow cannot publish one from `Mobile`.
+
 ## Initial live test
 
 Use a disposable Home Assistant test instance with the `Mobile` branch. Confirm the Music sidebar page loads, Library categories return real items in 30-item pages, search narrows results, and selecting a track produces audio **in the test browser**. Visit several HA pages with Back and sidebar navigation while audio is playing; verify the bubble remains present, sits left of header actions, and can pause, resume, skip, and return to the Library without stopping audio. Repeat in Android Companion. Record tab reload, app backgrounding, screen lock, and process death separately; those transitions are not guaranteed by the page-independent host.
