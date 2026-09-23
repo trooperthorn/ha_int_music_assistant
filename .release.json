@@ -10,9 +10,5 @@
       "kind": "json",
       "key": "version"
     }
-  ],
-  "archive": {
-    "source": "custom_components/music_assistant",
-    "name": "music_assistant.zip"
-  }
+  ]
 }
