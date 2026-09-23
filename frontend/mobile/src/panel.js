@@ -137,21 +137,8 @@ class MusicAssistantMobilePanel extends LitElement {
   }
 
   async _playItem(item) {
-    const player = this._selectedPlayer;
-    if (!player) {
-      this._error = "Choose a player in Music Routing before playing an item.";
-      return;
-    }
     this._error = "";
-    try {
-      await this.hass.callService("media_player", "play_media", {
-        entity_id: player.entity_id,
-        media_content_id: item.uri,
-        media_content_type: item.media_type,
-      });
-    } catch (error) {
-      this._error = error?.message || "This item could not be played.";
-    }
+    window.dispatchEvent(new CustomEvent("ma-mobile-play-local", { detail: item }));
   }
 
   _readView() {
@@ -260,7 +247,7 @@ class MusicAssistantMobilePanel extends LitElement {
         <label class="search-label">Search library
           <input type="search" placeholder="Search ${this._category}s" .value=${this._query} @input=${this._onSearch}>
         </label>
-        <span class="secondary">Output: ${this._selectedPlayer ? this._name(this._selectedPlayer) : "None selected"}</span>
+        <span class="secondary">Output: This browser</span>
       </div>
       <div class="categories" role="group" aria-label="Library category">
         ${CATEGORIES.map((category) => html`<button type="button"
@@ -270,7 +257,7 @@ class MusicAssistantMobilePanel extends LitElement {
       </div>
       ${this._items.length ? html`<div class="library-list">
         ${this._items.map((item) => html`<button type="button" class="library-row"
-          aria-label=${`Play ${item.name} on ${this._selectedPlayer ? this._name(this._selectedPlayer) : "selected player"}`}
+          aria-label=${`Play ${item.name} in this browser`}
           @click=${() => this._playItem(item)}>
           ${item.image ? html`<img src=${item.image} alt="" loading="lazy" referrerpolicy="no-referrer">` : html`<span class="art-placeholder"><ha-icon icon="mdi:music"></ha-icon></span>`}
           <span class="library-copy"><strong>${item.name}</strong><small>${item.artists?.map((artist) => artist.name).join(", ") || item.album?.name || item.media_type}</small></span>
@@ -283,31 +270,10 @@ class MusicAssistantMobilePanel extends LitElement {
   }
 
   _renderRouting() {
-    const players = this._players;
     return html`<section aria-labelledby="routing-title">
       <h2 id="routing-title">Music Routing</h2>
-      <p class="secondary">Select the Music Assistant player to control.</p>
-      ${players.length
-        ? html`<div class="route-list">
-            ${players.map(
-              (player) => html`<button
-                class="route-row ${this._selectedPlayer?.entity_id === player.entity_id
-                  ? "selected"
-                  : ""}"
-                type="button"
-                aria-pressed=${this._selectedPlayer?.entity_id === player.entity_id}
-                @click=${() => this._selectPlayer(player.entity_id)}
-              >
-                <ha-icon icon="mdi:speaker"></ha-icon>
-                <span class="route-copy"><strong>${this._name(player)}</strong>
-                  <small>${player.state}</small></span>
-                ${this._selectedPlayer?.entity_id === player.entity_id
-                  ? html`<ha-icon icon="mdi:check-circle" aria-hidden="true"></ha-icon>`
-                  : nothing}
-              </button>`,
-            )}
-          </div>`
-        : html`<p role="status">No exposed Music Assistant players are available.</p>`}
+      <p class="secondary">This test build plays locally in the current browser only.</p>
+      <div class="route-row selected" aria-current="true"><ha-icon icon="mdi:cellphone-sound"></ha-icon><span class="route-copy"><strong>This browser</strong><small>Local Sendspin audio</small></span><ha-icon icon="mdi:check-circle" aria-hidden="true"></ha-icon></div>
     </section>`;
   }
 
@@ -316,7 +282,7 @@ class MusicAssistantMobilePanel extends LitElement {
       <h2 id="settings-title">Music Settings</h2>
       <div class="setting-row">
         <span>Selected output</span>
-        <strong>${this._selectedPlayer ? this._name(this._selectedPlayer) : "None"}</strong>
+        <strong>This browser</strong>
       </div>
       <p class="secondary">
         Player and server settings already exposed by Home Assistant remain in
@@ -350,7 +316,6 @@ class MusicAssistantMobilePanel extends LitElement {
       ${this._error
         ? html`<p class="error" role="alert">${this._error}</p>`
         : nothing}
-      ${this._renderPlayer()}
     </div>`;
   }
 
