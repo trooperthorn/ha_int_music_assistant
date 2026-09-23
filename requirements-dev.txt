@@ -7,6 +7,8 @@ homeassistant-stubs==2026.9.0
 
 # Home Assistant Core & Testing (the harness pins core 2026.9.0)
 pytest-homeassistant-custom-component==0.13.363
+# Required when the Mobile branch registers a native custom panel.
+home-assistant-frontend==20260826.4
 
 # Integration Dependencies
 music-assistant-client==1.5.1
