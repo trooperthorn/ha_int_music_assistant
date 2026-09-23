@@ -10,7 +10,8 @@
   "config_flow": true,
   "dependencies": [
     "auth",
-    "panel_custom"
+    "panel_custom",
+    "http"
   ],
   "documentation": "https://github.com/trooperthorn/ha_int_music_assistant",
   "integration_type": "service",
