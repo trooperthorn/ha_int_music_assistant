@@ -50,6 +50,7 @@ from music_assistant_models.player import Player
 from .const import ATTR_CONF_EXPOSE_PLAYER_TO_HA, DEFAULT_VERIFY_SSL, DOMAIN, LOGGER
 from .intent import async_setup_intents
 from .mobile_frontend import async_setup_mobile_panel
+from .mobile_playback import register_mobile_actions
 from .services import register_actions
 
 if TYPE_CHECKING:
@@ -88,6 +89,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Music Assistant component."""
     hass.data.setdefault(DOMAIN, set())
     register_actions(hass)
+    register_mobile_actions(hass)
     async_setup_intents(hass)
     await async_setup_mobile_panel(hass)
 
