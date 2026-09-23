@@ -10,6 +10,7 @@ from .const import DOMAIN
 
 PANEL_PATH = "music-assistant-mobile"
 PANEL_MODULE_URL = "/api/music_assistant_mobile/panel.js"
+BUBBLE_MODULE_URL = "/api/music_assistant_mobile/bubble.js"
 _STATIC_REGISTERED = f"{DOMAIN}_mobile_static_registered"
 
 
@@ -22,10 +23,17 @@ async def async_setup_mobile_panel(hass: HomeAssistant) -> None:
                     PANEL_MODULE_URL,
                     str(Path(__file__).parent / "mobile" / "panel.js"),
                     False,
-                )
+                ),
+                StaticPathConfig(
+                    BUBBLE_MODULE_URL,
+                    str(Path(__file__).parent / "mobile" / "bubble.js"),
+                    False,
+                ),
             ]
         )
         hass.data[_STATIC_REGISTERED] = True
+
+    frontend.add_extra_js_url(hass, BUBBLE_MODULE_URL)
 
     if frontend.async_panel_exists(hass, PANEL_PATH):
         return
