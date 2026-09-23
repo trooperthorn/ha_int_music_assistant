@@ -40,15 +40,20 @@ class MusicAssistantMobilePanel extends LitElement {
     this._onHashChange = () => {
       this._view = this._readView();
     };
+    this._onSelectedPlayer = (event) => {
+      this._selectedId = event.detail;
+    };
   }
 
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("hashchange", this._onHashChange);
+    window.addEventListener("ma-mobile-player-selected", this._onSelectedPlayer);
   }
 
   disconnectedCallback() {
     window.removeEventListener("hashchange", this._onHashChange);
+    window.removeEventListener("ma-mobile-player-selected", this._onSelectedPlayer);
     clearTimeout(this._searchTimer);
     super.disconnectedCallback();
   }
