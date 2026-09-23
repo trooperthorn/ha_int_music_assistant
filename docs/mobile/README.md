@@ -1,6 +1,6 @@
 # Mobile branch: native Music Assistant design and phased work
 
-Status: initial test framework with Library browsing and an app-wide player bubble is built on this isolated branch. Installing the `Mobile` branch adds a Music sidebar page. The separate `prototype.html` remains a static visual mock.
+Status: initial local-playback test framework with Library browsing and a persistent app-wide player bubble is built on this isolated branch. CI validation is separate from live Chrome and Android playback testing. Installing the `Mobile` branch adds a Music sidebar page. The separate `prototype.html` remains a static visual mock.
 
 ## Objective
 
@@ -40,7 +40,7 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 | 1. Visual design | Responsive static prototype in [prototype.html](prototype.html), design review, mobile and desktop states. | Owner approves placement, navigation, labels, and accessibility layout before connecting data. |
 | 2. Native page shell | Built: bundled Lit custom panel served by the integration; HA theme, `hass`, Library/Routing/Settings routes, no direct browser-to-MA credentials. | Static build passes; live page mounting and Chrome/Android navigation await an isolated HA test instance. |
 | 3. Data and actions | Built for initial testing: Library category browsing, 30-item pages, search, cover art, and play action through existing Home Assistant services. Details and queue views remain future work. | The existing `get_library` response action is bounded; real large-library performance and item playback await live testing. |
-| 4. Persistent player feasibility | Built for initial testing: app-wide Lit bubble loaded through Home Assistant's extra-module hook. It controls exposed remote Music Assistant players and sits left of header actions when their layout is found. | Chrome and Android page navigation, header placement, and lifecycle still need live testing. Local browser audio playback is not implemented. |
+| 4. Persistent player feasibility | Built for initial testing: app-wide Lit bubble loaded through Home Assistant's extra-module hook. It owns a Sendspin browser player, proxies its authenticated socket through HA, and sits left of header actions when their layout is found. | Chrome and Android audio continuity, header placement, and lifecycle still need live testing. |
 | 5. Mobile acceptance | Device matrix, keyboard/screen reader, orientation, safe areas, screen lock/background, stream URL reachability, codec support, queue transition, reconnection. | Results state precisely which transitions pass, fail, or are unsupported. |
 | 6. Release decision | Owner reviews measured performance, UX, compatibility, and rollback evidence. | Merge/deploy/release only after explicit owner approval. |
 
@@ -50,7 +50,7 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 - The Lit page is a normal custom panel. The global bubble is a separate app-wide module registered through Home Assistant's `frontend.add_extra_js_url`; it mounts outside the panel lifecycle. Its position uses current header internals and may need adjustment after HA frontend upgrades.
 - A top-bar extension may rely on private HA frontend structure. Before adopting it, record which supported API exists, what may break on HA upgrades, and whether a less intrusive Browser Mod style plugin is preferable.
 - Do not use an ingress iframe as the persistent audio host.
-- No external CDN, new runtime library, credential storage in browser JavaScript, or direct MA socket from the page.
+- No external CDN, MA credential storage in browser JavaScript, or direct browser-to-MA socket. The bundled Sendspin SDK is a new frontend dependency; HA proxies its socket to MA with the integration's existing token.
 - Preserve current integration entities, actions, config entries, and release behavior.
 
 ## Verification ledger
@@ -58,8 +58,8 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 - Confirmed from source: current HA Media Browser's player is panel-owned and explicitly paused on teardown.
 - Confirmed from owner's browser: current MA Library uses compact artwork rows and a dark mobile layout; the desired HA bar has **+**, search, conversation, and overflow actions.
 - Built on `Mobile`: the Music sidebar page, selected exposed Music Assistant player, HA service calls for play/pause/previous/next, paged Library browsing/search, and an app-wide remote-player bubble. The source is in `frontend/mobile/src/panel.js`; the self-contained build output is `custom_components/music_assistant/mobile/panel.js`.
-- The live bubble is registered in HA and remains mounted across same-document navigation. It controls remote Music Assistant players. It is not yet a browser-audio engine, so local phone/browser playback continuity is unproven.
-- Library uses the existing bounded `get_library` action rather than a second backend connection. Routing and the bubble list only players exposed as Home Assistant media player entities. Expanded settings, queue, item details, and browser-audio playback remain future work.
+- The live bubble is registered in HA and owns the Sendspin browser audio engine outside the page lifecycle. Library selections play into that browser player. Same-document navigation should leave the audio host mounted, but Chrome and Android continuity remain unverified until an isolated live test.
+- Library uses the existing bounded `get_library` action rather than a second backend connection. Routing names only this browser in this test build; the bubble does not control remote player entities. Expanded settings, queue, item details, and browser-audio playback remain future work.
 - Untested: actual top-bar injection, local playback through page navigation, Android background audio, Media Source support for MA provider URLs, and production performance.
 
 ## Rollback
@@ -74,4 +74,10 @@ The branch is intended for a separate test Home Assistant instance. Installing i
 
 ## Initial live test
 
-Use a disposable Home Assistant test instance with the `Mobile` branch. Confirm the Music sidebar page loads, Library categories return real items in 30-item pages, search narrows results, and selecting a track plays on an exposed Music Assistant player. Visit several HA pages with Back and sidebar navigation and confirm the bubble stays present, remains left of the header actions, and can control that remote player. Record Android Companion behavior separately from Chrome. Local browser audio, app backgrounding, process death, and screen lock are still distinct untested cases.
+Use a disposable Home Assistant test instance with the `Mobile` branch. Confirm the Music sidebar page loads, Library categories return real items in 30-item pages, search narrows results, and selecting a track produces audio **in the test browser**. Visit several HA pages with Back and sidebar navigation while audio is playing; verify the bubble remains present, sits left of header actions, and can pause, resume, skip, and return to the Library without stopping audio. Repeat in Android Companion. Record tab reload, app backgrounding, screen lock, and process death separately; those transitions are not guaranteed by the page-independent host.
+
+## Local playback architecture and limits
+
+The app-wide bubble owns `@sendspin/sendspin-js` 5.0.0. It uses Home Assistant's authenticated signed-path API to open a short-lived, same-origin WebSocket to the integration. The integration forwards Sendspin frames to Music Assistant and supplies its existing MA token server-side. The browser keeps only its own Sendspin identity and pairing token. `music_assistant.mobile_play` and `music_assistant.mobile_control` pair and target only the browser identity encoded in that token. The Library page sends a same-document event to the bubble, so unmounting the page does not unmount the audio engine.
+
+The MA server must provide its Sendspin web player and `/sendspin` proxy endpoint. This was confirmed in Music Assistant 2.10.4 source, but the owner's current running version and configuration must be checked at live test time. The current build does not restore audio after a full document reload or guarantee Android background playback. The global header anchor uses private HA frontend layout details. No user approval for installing this branch on the live instance has been given.
