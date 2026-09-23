@@ -1,6 +1,6 @@
 # Mobile branch: native Music Assistant design and phased work
 
-Status: design and static prototype only. This branch is an isolated experiment. Nothing in this document or `prototype.html` is loaded by the Home Assistant integration.
+Status: Phase 2 native page shell is built on this isolated branch. Installing the `Mobile` branch adds a Music sidebar page. The separate `prototype.html` remains a static visual mock.
 
 ## Objective
 
@@ -14,7 +14,7 @@ The branch name is `Mobile`. Do not merge it into `main`, publish a release, or 
 - Integration: `custom_components/music_assistant`, Home Assistant 2026.9.0, Python 3.14, `music-assistant-client==1.5.1`.
 - Existing integration already has push-driven player and queue state, Library browsing/search, `get_library`, `get_queue`, `play_media`, and `transfer_queue`. Its `media_browser.py` documents the limits of the generic HA Media Browser for a rich Library view.
 - The existing fork keeps the `music_assistant` domain and is designed to override Home Assistant's built-in integration without changing entity identity. Preserve that contract.
-- Branch content now: this design and a standalone, dependency-free visual prototype. No Python runtime or release configuration changes.
+- Branch content now: this design, a standalone visual prototype, a bundled Lit panel, and panel registration in the integration. `main` and all releases remain unchanged.
 
 ## Core distinction
 
@@ -38,7 +38,7 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 | --- | --- | --- |
 | 0. Inventory | Current integration/API/frontend versions, exact player mode, navigation trace, timing baseline, and code ownership map. | The team can reproduce the stop and distinguish local browser from remote player. |
 | 1. Visual design | Responsive static prototype in [prototype.html](prototype.html), design review, mobile and desktop states. | Owner approves placement, navigation, labels, and accessibility layout before connecting data. |
-| 2. Native page shell | Bundled Lit custom panel served by the integration; HA theme, `hass`, Library/Routing/Settings routes, no direct browser-to-MA credentials. | Page mounts and unmounts cleanly; Back and sidebar navigation work in Chrome and Android without modifying player state. |
+| 2. Native page shell | Built: bundled Lit custom panel served by the integration; HA theme, `hass`, Library/Routing/Settings routes, no direct browser-to-MA credentials. | Static build passes; live page mounting and Chrome/Android navigation await an isolated HA test instance. |
 | 3. Data and actions | Bounded integration WebSocket APIs for paged Library, search, details, queue, and routing; reuse the one existing `MusicAssistantClient` per entry. Add a Media Source only if needed to resolve MA items for HA playback. | Large-library scrolling is smooth; requests are bounded; actions target the selected player and report errors. |
 | 4. Persistent player feasibility | Smallest viable same-document player host plus top-bar control. Compare a documented/supported frontend path with a Browser Mod style plugin. Do not couple playback to the panel's lifecycle. | On actual HA pages, Chrome and Android Back/sidebar transitions preserve local audio and controls. If no maintainable host exists, stop and present options. |
 | 5. Mobile acceptance | Device matrix, keyboard/screen reader, orientation, safe areas, screen lock/background, stream URL reachability, codec support, queue transition, reconnection. | Results state precisely which transitions pass, fail, or are unsupported. |
@@ -57,9 +57,17 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 
 - Confirmed from source: current HA Media Browser's player is panel-owned and explicitly paused on teardown.
 - Confirmed from owner's browser: current MA Library uses compact artwork rows and a dark mobile layout; the desired HA bar has **+**, search, conversation, and overflow actions.
-- Prototype only: the top-bar music button and compact player in this branch are static UI with sample data. They do not play audio or register in HA.
+- Built on `Mobile`: the Music sidebar page, selected exposed Music Assistant player, and HA service calls for play/pause/previous/next. The source is in `frontend/mobile/src/panel.js`; the self-contained build output is `custom_components/music_assistant/mobile/panel.js`.
+- Prototype only: the **global top-bar** music button and its player are static UI with sample data. They do not play audio or register in HA. The live panel has only a page-bound control bar; it cannot preserve local browser audio after leaving the page.
+- Library and expanded settings remain placeholders pending a bounded backend API. Routing currently lists only players exposed as Home Assistant media player entities.
 - Untested: actual top-bar injection, local playback through page navigation, Android background audio, Media Source support for MA provider URLs, and production performance.
 
 ## Rollback
 
 The experiment is contained in `Mobile`. Until a reviewed merge, `main` and its releases stay at their current behavior. If the persistent header/player is not maintainable, leave this branch unmerged and retain the findings as an architectural record.
+
+## Building the panel
+
+From `frontend/mobile`, run `npm ci` and `npm run build`. The build bundles Lit locally into `custom_components/music_assistant/mobile/panel.js`; Home Assistant serves that file from its own origin. No CDN is used. The installed integration does not need Node.js or npm.
+
+The branch is intended for a separate test Home Assistant instance. Installing it replaces the normal `music_assistant` integration code for that instance and adds a Music sidebar entry; it does not install into the owner's running instance automatically.
