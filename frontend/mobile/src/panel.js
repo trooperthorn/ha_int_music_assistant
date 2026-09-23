@@ -138,6 +138,10 @@ class MusicAssistantMobilePanel extends LitElement {
 
   async _playItem(item) {
     this._error = "";
+    if (!document.querySelector("ma-mobile-bubble")) {
+      this._error = "The local player has not loaded. Reload Home Assistant and try again.";
+      return;
+    }
     window.dispatchEvent(new CustomEvent("ma-mobile-play-local", { detail: item }));
   }
 
