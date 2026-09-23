@@ -26,10 +26,10 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 
 1. The Music page follows Home Assistant theme, typography, focus indication, minimum touch target size, and screen-reader naming.
 2. Library supports source/category browsing, search, recent items, paged results, and a clear selected playback target. It does not block initial render on all library counts.
-3. Routing lists browser and remote outputs with availability and selected state. Settings contains only controls backed by verified integration capabilities.
+3. This initial Routing view selects the current browser only. Settings contains only controls backed by verified integration capabilities.
 4. On mobile, the music button is in the persistent HA top bar, immediately left of **+**, with a clear active state. On desktop, it remains in the top bar.
-5. The compact player shows artwork, title, artist, output, play/pause, previous/next when available, progress, Queue, and Change output. Collapsing it hides controls but does not issue Stop.
-6. Back moves through Music subpages before leaving Music. Leaving Music or opening another HA page must not issue Stop to a remote player. Local browser audio continuity is a separate acceptance test.
+5. The initial compact player shows the selected item's title and artist plus play/pause and previous/next. Artwork, progress, Queue, and Change output are later phases. Collapsing it hides controls but does not issue Stop.
+6. Back moves through Music subpages before leaving Music. Leaving Music or opening another HA page should preserve local browser audio during same-document navigation; this requires a live acceptance test.
 7. Full reload, browser tab close, Companion app process death, screen lock, and app backgrounding are recorded as distinct behaviors. Do not claim they are solved by same-document navigation.
 
 ## Phases and gates
@@ -57,10 +57,10 @@ Sources: [Media Source](https://www.home-assistant.io/integrations/media_source/
 
 - Confirmed from source: current HA Media Browser's player is panel-owned and explicitly paused on teardown.
 - Confirmed from owner's browser: current MA Library uses compact artwork rows and a dark mobile layout; the desired HA bar has **+**, search, conversation, and overflow actions.
-- Built on `Mobile`: the Music sidebar page, selected exposed Music Assistant player, HA service calls for play/pause/previous/next, paged Library browsing/search, and an app-wide remote-player bubble. The source is in `frontend/mobile/src/panel.js`; the self-contained build output is `custom_components/music_assistant/mobile/panel.js`.
+- Built on `Mobile`: the Music sidebar page, paged Library browsing/search, and an app-wide local Sendspin player bubble with play/pause/previous/next. Sources are in `frontend/mobile/src/`; compiled bundles are in `custom_components/music_assistant/mobile/`.
 - The live bubble is registered in HA and owns the Sendspin browser audio engine outside the page lifecycle. Library selections play into that browser player. Same-document navigation should leave the audio host mounted, but Chrome and Android continuity remain unverified until an isolated live test.
-- Library uses the existing bounded `get_library` action rather than a second backend connection. Routing names only this browser in this test build; the bubble does not control remote player entities. Expanded settings, queue, item details, and browser-audio playback remain future work.
-- Untested: actual top-bar injection, local playback through page navigation, Android background audio, Media Source support for MA provider URLs, and production performance.
+- Library uses the existing bounded `get_library` action rather than a second backend connection. Routing names only this browser in this test build; the bubble does not control remote player entities. Expanded settings, queue, and item details remain future work.
+- Untested: actual top-bar injection, local playback through page navigation, Android background audio, and production performance.
 
 ## Rollback
 
