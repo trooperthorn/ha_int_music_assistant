@@ -27,10 +27,10 @@ version or pushes a tag by hand.
 1. `Release` runs on every push to `main`. It calls the Test and Validate
    workflows, reads the version from `custom_components/music_assistant/manifest.json`
    through `.release.json`, and stops if a published release for that
-   version exists. Otherwise it builds `music_assistant.zip` (HACS installs
-   it because `hacs.json` sets `zip_release`), an SPDX SBOM, `SHA256SUMS`,
-   provenance and SBOM attestations, creates the `v<version>` tag on the
-   exact commit, drafts the release, attaches the assets, and publishes it.
+   version exists. Otherwise it creates the `v<version>` tag on the exact
+   commit, drafts the GitHub release, and publishes it. HACS installs
+   `custom_components/music_assistant` directly from that tagged repository
+   tree; no ZIP release asset is required.
 2. `Prepare release` runs after every successful `Release` on `main`. When
    the manifest version equals the latest published release and
    `custom_components/music_assistant` changed since that tag, it runs
