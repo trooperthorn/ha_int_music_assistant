@@ -1,0 +1,17 @@
+{
+  "name": "music-assistant-mobile-panel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild ./src/panel.js --bundle --format=esm --target=es2022 --minify --outfile=../panel.js"
+  },
+  "dependencies": {
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
+
+
