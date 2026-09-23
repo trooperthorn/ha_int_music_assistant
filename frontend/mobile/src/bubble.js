@@ -63,8 +63,12 @@ class MusicAssistantBubble extends LitElement {
 
   async _syncHass() {
     const hass = document.querySelector("home-assistant")?.hass;
-    if (!hass?.callWS || this._entryId || this._connecting) return;
+    if (!hass?.callWS || this._connecting) return;
     this._hass = hass;
+    if (this._entryId) {
+      if (!this._ready) await this._connect();
+      return;
+    }
     try {
       const entries = await hass.callWS({ type: "config_entries/get", domain: "music_assistant" });
       const entry = entries.find((candidate) => candidate.state === "loaded");
@@ -80,6 +84,8 @@ class MusicAssistantBubble extends LitElement {
     if (this._connecting || !this._hass || !this._entryId) return;
     this._connecting = true;
     this._ready = false;
+    clearTimeout(this._retryTimer);
+    this._player?.disconnect("restart");
     try {
       const path = `/api/music_assistant_mobile/sendspin/${this._entryId}`;
       const signed = await this._hass.callWS({ type: "auth/sign_path", path, expires: 60 });
