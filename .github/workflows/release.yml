@@ -1,6 +1,5 @@
-# A merge to main is the release trigger; see docs/operations.md. The release
-# carries the HACS archive with an SPDX SBOM, checksums, and build provenance
-# and SBOM attestations, so an install can be verified against this workflow run.
+# A merge to main is the release trigger; see docs/operations.md.
+# HACS installs the integration directory directly from the tagged tree.
 name: Release
 
 on:
@@ -32,9 +31,7 @@ jobs:
     needs: [tests, validate]
     runs-on: ubuntu-latest
     permissions:
-      attestations: write
       contents: write
-      id-token: write
     steps:
       - name: Check out the exact main commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,43 +73,8 @@ jobs:
           fi
           printf 'publish=true\n' >> "$GITHUB_OUTPUT"
 
-      - name: Build deterministic HACS archive
-        if: steps.version.outputs.publish == 'true'
-        run: python3 scripts/build_release_artifacts.py --output dist/music_assistant.zip
-
-      # GitHub's attestation guidance names this action as its SBOM generator.
-      - name: Generate the archive SBOM
-        if: steps.version.outputs.publish == 'true'
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
-        with:
-          file: dist/music_assistant.zip
-          format: spdx-json
-          output-file: dist/music_assistant.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-          dependency-snapshot: false
-
-      - name: Generate release checksums
-        if: steps.version.outputs.publish == 'true'
-        working-directory: dist
-        run: sha256sum music_assistant.zip music_assistant.spdx.json > SHA256SUMS
-
-      - name: Attest build provenance
-        if: steps.version.outputs.publish == 'true'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
-        with:
-          subject-path: dist/music_assistant.zip
-
-      - name: Attest the archive SBOM
-        if: steps.version.outputs.publish == 'true'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
-        with:
-          subject-path: dist/music_assistant.zip
-          sbom-path: dist/music_assistant.spdx.json
-
-      # Immutable releases lock their tag and assets at publication, so the
-      # sequence is: tag, draft, attach, publish. A failed run resumes the
-      # draft; a published release is never touched.
+      # Immutable releases lock their tag at publication. A failed run
+      # resumes the draft; a published release is never touched.
       - name: Stage immutable tag and draft release
         if: steps.version.outputs.publish == 'true'
         env:
@@ -135,13 +97,6 @@ jobs:
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
               --title "$TAG" --generate-notes --verify-tag --draft
           fi
-          gh release upload "$TAG" \
-            dist/music_assistant.zip \
-            dist/music_assistant.spdx.json \
-            dist/SHA256SUMS \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
-
       - name: Publish and lock the complete release
         if: steps.version.outputs.publish == 'true'
         env:
@@ -149,7 +104,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
 
-      - name: Publish verification instructions
+      - name: Publish release summary
         if: steps.version.outputs.publish == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -157,11 +112,5 @@ jobs:
           {
             echo '### Release verification'
             echo
-            echo "Published \`$TAG\` from \`$GITHUB_SHA\`. HACS installs \`music_assistant.zip\`."
-            echo
-            echo '```bash'
-            echo "gh release download $TAG -R $GITHUB_REPOSITORY -p music_assistant.zip -p SHA256SUMS"
-            echo 'sha256sum --check SHA256SUMS --ignore-missing'
-            echo "gh attestation verify music_assistant.zip -R $GITHUB_REPOSITORY"
-            echo '```'
+            echo "Published \`$TAG\` from \`$GITHUB_SHA\`. HACS installs \`custom_components/music_assistant\` from the tagged repository tree."
           } >> "$GITHUB_STEP_SUMMARY"
