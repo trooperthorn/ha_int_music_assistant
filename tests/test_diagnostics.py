@@ -37,11 +37,14 @@ async def test_diagnostics_redacts_token_and_lists_players(
     result = await async_get_config_entry_diagnostics(hass, config_entry)
 
     assert result["entry"][CONF_TOKEN] == "**REDACTED**"
-    assert result["entry"][CONF_URL] == config_entry.data[CONF_URL]
+    assert result["entry"][CONF_URL] == "**REDACTED**"
     assert result["connected"] is True
-    assert result["server_info"]["server_id"] == "1234"
+    assert result["server_info"]["server_id"] == "**REDACTED**"
+    assert result["server_info"]["base_url"] == "**REDACTED**"
     assert sorted(result["discovered_players"]) == result["discovered_players"]
     assert len(result["players"]) == len(list(music_assistant_client.players))
+    for queue in result["queues"]:
+        assert queue["items"] == "**REDACTED**"
     assert {queue["queue_id"] for queue in result["queues"]} == {
         queue.queue_id for queue in music_assistant_client.player_queues
     }

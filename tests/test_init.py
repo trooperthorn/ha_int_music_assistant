@@ -216,3 +216,29 @@ async def test_authentication_required_addon_no_reauth(
     issue_reg = ir.async_get(hass)  # pylint: disable=home-assistant-tests-registry-fixtures
     issue_id = f"config_entry_reauth_{DOMAIN}_{config_entry.entry_id}"
     assert issue_reg.async_get_issue("homeassistant", issue_id) is None
+
+
+async def test_authentication_failure_without_server_info_triggers_reauth(
+    hass: HomeAssistant,
+    music_assistant_client: MagicMock,
+) -> None:
+    """An auth failure before server info is known still starts reauth."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Music Assistant",
+        data={"url": "http://localhost:8095", "token": "old_token"},
+        unique_id="test_server_id",
+    )
+    config_entry.add_to_hass(hass)
+    music_assistant_client.server_info = None
+    music_assistant_client.connect.side_effect = AuthenticationRequired(
+        "Authentication required"
+    )
+
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    issue_reg = ir.async_get(hass)  # pylint: disable=home-assistant-tests-registry-fixtures
+    issue_id = f"config_entry_reauth_{DOMAIN}_{config_entry.entry_id}"
+    assert issue_reg.async_get_issue("homeassistant", issue_id)

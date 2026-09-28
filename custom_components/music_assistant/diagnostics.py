@@ -5,12 +5,21 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_TOKEN, CONF_URL
 from homeassistant.core import HomeAssistant
 
 from . import MusicAssistantConfigEntry
 
-TO_REDACT = {CONF_TOKEN, "ip_address", "identifiers", "manufacturer_id"}
+TO_REDACT = {
+    CONF_TOKEN,
+    CONF_URL,
+    "base_url",
+    "server_id",
+    "ip_address",
+    "identifiers",
+    "manufacturer_id",
+}
+QUEUE_TO_REDACT = {"items", "name", "uri", "title", "media_item", "image"}
 
 
 async def async_get_config_entry_diagnostics(
@@ -46,9 +55,11 @@ async def async_get_config_entry_diagnostics(
     return {
         "entry": async_redact_data(dict(entry.data), TO_REDACT),
         "connected": bool(mass.connection.connected),
-        "server_info": server_info,
+        "server_info": async_redact_data(server_info, TO_REDACT)
+        if server_info is not None
+        else None,
         "discovered_players": sorted(entry.runtime_data.discovered_players),
         "players": async_redact_data(players, TO_REDACT),
-        "queues": queues,
+        "queues": async_redact_data(queues, QUEUE_TO_REDACT),
         "providers": providers,
     }
