@@ -31,6 +31,6 @@ jobs:
       - name: Type check
         run: mypy --config-file mypy.ini custom_components/music_assistant
       - name: Run the suite
-        run: pytest -ra --strict-markers tests/
+        run: pytest -ra --strict-markers --cov=custom_components.music_assistant --cov-fail-under=90 tests/
       - name: Validate the release version fields
         run: python3 scripts/build_release_artifacts.py --validate-only

@@ -154,9 +154,18 @@ async def test_listen_drop_after_load_reloads(
         release.clear()
         return await original_reload(entry_id)
 
+    scheduled: list[str] = []
+    original_schedule = hass.config_entries.async_schedule_reload
+
+    def fake_schedule(entry_id: str) -> None:
+        scheduled.append(entry_id)
+        original_schedule(entry_id)
+
     hass.config_entries.async_reload = fake_reload  # type: ignore[method-assign]
+    hass.config_entries.async_schedule_reload = fake_schedule  # type: ignore[method-assign]
     release.set()
     await hass.async_block_till_done()
+    assert scheduled == [entry.entry_id]
     assert reload_calls == [entry.entry_id]
     assert "lost" in caplog.text
     assert caplog.text.count("Connection to Music Assistant server") == 2
@@ -264,3 +273,55 @@ async def test_entry_removal_forgets_connection_bookkeeping(
     await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.entry_id not in hass.data[DOMAIN]
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [MusicAssistantError("boom"), MusicAssistantClientException("gone"), TimeoutError],
+)
+async def test_player_config_fetch_failure_retries_and_cleans_up(
+    hass: HomeAssistant,
+    music_assistant_client: MagicMock,
+    exception: BaseException,
+) -> None:
+    """A failed player config fetch after forwarding retries and tears down."""
+    entry = _entry()
+    entry.add_to_hass(hass)
+    music_assistant_client.config.get_player_configs = AsyncMock(side_effect=exception)
+    music_assistant_client.disconnect.reset_mock()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    music_assistant_client.disconnect.assert_awaited()
+
+
+async def test_player_added_during_initial_scan_is_not_duplicated(
+    hass: HomeAssistant,
+    music_assistant_client: MagicMock,
+) -> None:
+    """The PLAYER_ADDED subscription is live before the initial player scan."""
+    order: list[str] = []
+
+    def record_subscribe(callback, event_filter=None, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if event_filter == EventType.PLAYER_ADDED:
+            order.append("subscribe")
+        return MagicMock()
+
+    music_assistant_client.subscribe.side_effect = record_subscribe
+    players = music_assistant_client.players
+    original_iter = type(players).__iter__
+
+    def tracking_iter(self):  # type: ignore[no-untyped-def]
+        order.append("iterate")
+        return original_iter(self)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(type(players), "__iter__", tracking_iter)
+        entry = await setup_integration_from_fixtures(hass, music_assistant_client)
+    assert "subscribe" in order
+    assert order.index("subscribe") < order.index("iterate")
+    assert PLAYER_ID in entry.runtime_data.discovered_players
+    await trigger_subscription_callback(
+        hass, music_assistant_client, EventType.PLAYER_ADDED, PLAYER_ID
+    )
+    assert PLAYER_ID in entry.runtime_data.discovered_players

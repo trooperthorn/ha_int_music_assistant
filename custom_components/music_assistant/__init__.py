@@ -30,6 +30,7 @@ from homeassistant.helpers.issue_registry import (
     async_create_issue,
     async_delete_issue,
 )
+from homeassistant.util.hass_dict import HassKey
 from music_assistant_client import MusicAssistantClient
 from music_assistant_client.exceptions import (
     CannotConnect,
@@ -67,6 +68,8 @@ PLATFORMS = [
 CONNECT_TIMEOUT = 10
 LISTEN_READY_TIMEOUT = 30
 
+LOST_CONNECTIONS: HassKey[set[str]] = HassKey(DOMAIN)
+
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type MusicAssistantConfigEntry = ConfigEntry[MusicAssistantEntryData]
@@ -85,7 +88,7 @@ class MusicAssistantEntryData:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Music Assistant component."""
-    hass.data.setdefault(DOMAIN, set())
+    hass.data.setdefault(LOST_CONNECTIONS, set())
     register_actions(hass)
     async_setup_intents(hass)
 
@@ -94,7 +97,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 def _lost_connections(hass: HomeAssistant) -> set[str]:
     """Return the entry ids whose server connection is logged as lost."""
-    lost: set[str] = hass.data.setdefault(DOMAIN, set())
+    lost: set[str] = hass.data.setdefault(LOST_CONNECTIONS, set())
     return lost
 
 
@@ -162,8 +165,8 @@ async def async_setup_entry(
             translation_placeholders={"error": _describe(err)},
         ) from err
     except (AuthenticationRequired, AuthenticationFailed, InvalidToken) as err:
-        assert mass.server_info is not None
-        if mass.server_info.homeassistant_addon:
+        server_info = mass.server_info
+        if server_info is not None and server_info.homeassistant_addon:
             raise ConfigEntryError(
                 translation_domain=DOMAIN,
                 translation_key="addon_discovery_pending",
@@ -181,7 +184,7 @@ async def async_setup_entry(
             translation_placeholders={"url": mass_url, "error": _describe(err)},
         ) from err
     except MusicAssistantError as err:
-        LOGGER.exception("Failed to connect to music assistant server", exc_info=err)
+        LOGGER.exception("Failed to connect to music assistant server")
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="unknown_error",
@@ -258,11 +261,6 @@ async def async_setup_entry(
 
     entry.async_on_unload(mass.subscribe(handle_player_added, EventType.PLAYER_ADDED))
 
-    for player in mass.players:
-        if not player.expose_to_ha:
-            continue
-        add_player(player)
-
     def handle_player_removed(event: MassEvent) -> None:
         """Handle Mass Player Removed event."""
         if event.object_id is None:
@@ -291,7 +289,23 @@ async def async_setup_entry(
         mass.subscribe(handle_player_config_updated, EventType.PLAYER_CONFIG_UPDATED)
     )
 
-    all_player_configs = await mass.config.get_player_configs()
+    for player in list(mass.players):
+        if not player.expose_to_ha or player.player_id in (
+            entry.runtime_data.discovered_players
+        ):
+            continue
+        add_player(player)
+
+    try:
+        all_player_configs = await mass.config.get_player_configs()
+    except (MusicAssistantError, MusicAssistantClientException, TimeoutError) as err:
+        listen_task.cancel()
+        await mass.disconnect()
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={"url": mass_url, "error": _describe(err)},
+        ) from err
     player_ids = {player.player_id for player in all_player_configs}
     dev_reg = dr.async_get(hass)
     dev_entries = dr.async_entries_for_config_entry(dev_reg, entry.entry_id)
@@ -342,9 +356,7 @@ def _migrate_player_identity(
         old_id,
         player.player_id,
     )
-    dev_reg.async_update_device(
-        device.id, new_identifiers={(DOMAIN, player.player_id)}
-    )
+    dev_reg.async_update_device(device.id, new_identifiers={(DOMAIN, player.player_id)})
     ent_reg = er.async_get(hass)
     for entity in er.async_entries_for_device(ent_reg, device.id, True):
         if entity.platform != DOMAIN:
@@ -352,7 +364,7 @@ def _migrate_player_identity(
         if entity.unique_id == old_id:
             new_unique_id = player.player_id
         elif entity.unique_id.startswith(f"{old_id}_"):
-            new_unique_id = f"{player.player_id}{entity.unique_id[len(old_id):]}"
+            new_unique_id = f"{player.player_id}{entity.unique_id[len(old_id) :]}"
         else:
             continue
         ent_reg.async_update_entity(entity.entity_id, new_unique_id=new_unique_id)
@@ -387,7 +399,7 @@ async def _client_listen(
 
     if not hass.is_stopping:
         _log_connection_lost(hass, entry, reason)
-        hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
+        hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 async def async_unload_entry(
