@@ -4,15 +4,13 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components import media_source
-from homeassistant.components.media_player import (
-    BrowseError,
+from homeassistant.components.media_player.browse_media import (
     BrowseMedia,
-    MediaClass,
-    MediaType,
-    SearchError,
     SearchMedia,
     SearchMediaQuery,
 )
+from homeassistant.components.media_player.const import MediaClass, MediaType
+from homeassistant.components.media_player.errors import BrowseError, SearchError
 from homeassistant.core import HomeAssistant
 from music_assistant_models.enums import MediaType as MASSMediaType
 from music_assistant_models.media_items import MediaItemType, SearchResults

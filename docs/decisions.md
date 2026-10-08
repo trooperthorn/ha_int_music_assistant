@@ -2,6 +2,21 @@
 
 Dated decisions with the alternative rejected and why.
 
+## 2026-10-08: Minimum Home Assistant is 2026.10.0, schemas use probatio
+
+Core 2026.10 types flow, service and websocket schemas as probatio, so the
+voluptuous schemas failed mypy (developer blog 2026-09-30, "Probatio is our
+validation engine"). The integration now imports `probatio` directly, as core
+does; runtime behavior is unchanged because core has validated with probatio
+since 2026.9. The suite runs on core 2026.10.0 and `hacs.json` follows the
+tested core. Media player names are imported from the submodules that define
+them (`media_player.const`, `.browse_media`, `.errors`), because the 2026.10
+package no longer re-exports them and mypy runs strict. The manifest declares
+`music-assistant-client>=1.5.1`: core depends on the client, and hassfest
+rejects an exact pin of a core dependency (main's Validate run had failed on it
+since 2026-10-05). Rejected: aliasing `probatio as vol`, which core's lint
+config bans.
+
 ## 2026-09-13, keep the `music_assistant` domain and override core
 
 The fork keeps core's domain so a HACS download replaces the built-in copy

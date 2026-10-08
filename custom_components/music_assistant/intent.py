@@ -38,7 +38,7 @@ from homeassistant.components.media_player.const import (
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import intent
-import voluptuous as vol
+import probatio
 
 from .const import LOGGER
 
@@ -51,16 +51,16 @@ INTENT_MASS_PLAY_FROM_SOURCE = "HassMassPlayFromSource"
 _LIBRARY_SCHEME = "library"
 
 _SLOT_SCHEMA_BASE = {
-    vol.Optional("media_class"): vol.In(
+    probatio.Optional("media_class"): probatio.In(
         [MediaClass.ARTIST, MediaClass.ALBUM, MediaClass.TRACK, MediaClass.PLAYLIST]
     ),
     # optional name/area/floor slots handled by the intent matcher, mirroring
     # HassMediaSearchAndPlay so the same device/area targeting applies here
-    vol.Optional("name"): str,
-    vol.Optional("area"): str,
-    vol.Optional("floor"): str,
-    vol.Optional("preferred_area_id"): str,
-    vol.Optional("preferred_floor_id"): str,
+    probatio.Optional("name"): str,
+    probatio.Optional("area"): str,
+    probatio.Optional("floor"): str,
+    probatio.Optional("preferred_area_id"): str,
+    probatio.Optional("preferred_floor_id"): str,
 }
 
 
@@ -176,7 +176,7 @@ class MassSearchAndPlayHandler(intent.IntentHandler):
     )
     intent_type = INTENT_MASS_SEARCH_AND_PLAY
     slot_schema = {  # noqa: RUF012
-        vol.Required("search_query"): str,
+        probatio.Required("search_query"): str,
         **_SLOT_SCHEMA_BASE,
     }
     platforms = {MEDIA_PLAYER_DOMAIN}  # noqa: RUF012
@@ -232,8 +232,8 @@ class MassPlayFromSourceHandler(intent.IntentHandler):
     )
     intent_type = INTENT_MASS_PLAY_FROM_SOURCE
     slot_schema = {  # noqa: RUF012
-        vol.Required("search_query"): str,
-        vol.Required("source"): str,
+        probatio.Required("search_query"): str,
+        probatio.Required("source"): str,
         **_SLOT_SCHEMA_BASE,
     }
     platforms = {MEDIA_PLAYER_DOMAIN}  # noqa: RUF012

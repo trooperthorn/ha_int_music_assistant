@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from homeassistant.components.media_player import (
+from homeassistant.components.media_player.const import (
     ATTR_MEDIA_ENQUEUE,
     DOMAIN as MEDIA_PLAYER_DOMAIN,
 )
@@ -18,7 +18,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, service
 from music_assistant_models.enums import AlbumType, MediaType, QueueOption
 from music_assistant_models.media_items import SearchResults
-import voluptuous as vol
+import probatio
 
 from .const import (
     ATTR_ALBUM,
@@ -101,19 +101,19 @@ def register_actions(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_SEARCH,
         handle_search,
-        schema=vol.Schema(
+        schema=probatio.Schema(
             {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): str,
-                vol.Required(ATTR_SEARCH_NAME): cv.string,
-                vol.Optional(ATTR_MEDIA_TYPE): vol.All(
-                    cv.ensure_list, [vol.Coerce(MediaType)]
+                probatio.Required(ATTR_CONFIG_ENTRY_ID): str,
+                probatio.Required(ATTR_SEARCH_NAME): cv.string,
+                probatio.Optional(ATTR_MEDIA_TYPE): probatio.All(
+                    cv.ensure_list, [probatio.Coerce(MediaType)]
                 ),
-                vol.Optional(ATTR_SEARCH_ARTIST): cv.string,
-                vol.Optional(ATTR_SEARCH_ALBUM): cv.string,
-                vol.Optional(ATTR_LIMIT, default=5): vol.Coerce(int),
-                vol.Optional(ATTR_LIBRARY_ONLY, default=False): cv.boolean,
-                vol.Optional(ATTR_PROVIDERS): vol.All(cv.ensure_list, [cv.string]),
-                vol.Optional(ATTR_USERNAME): cv.string,
+                probatio.Optional(ATTR_SEARCH_ARTIST): cv.string,
+                probatio.Optional(ATTR_SEARCH_ALBUM): cv.string,
+                probatio.Optional(ATTR_LIMIT, default=5): probatio.Coerce(int),
+                probatio.Optional(ATTR_LIBRARY_ONLY, default=False): cv.boolean,
+                probatio.Optional(ATTR_PROVIDERS): probatio.All(cv.ensure_list, [cv.string]),
+                probatio.Optional(ATTR_USERNAME): cv.string,
             }
         ),
         supports_response=SupportsResponse.ONLY,
@@ -122,20 +122,20 @@ def register_actions(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_GET_PROVIDERS,
         handle_get_providers,
-        schema=vol.Schema({vol.Required(ATTR_CONFIG_ENTRY_ID): str}),
+        schema=probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): str}),
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SYNC_LIBRARY,
         handle_sync_library,
-        schema=vol.Schema(
+        schema=probatio.Schema(
             {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): str,
-                vol.Optional(ATTR_MEDIA_TYPES): vol.All(
-                    cv.ensure_list, [vol.Coerce(MediaType)]
+                probatio.Required(ATTR_CONFIG_ENTRY_ID): str,
+                probatio.Optional(ATTR_MEDIA_TYPES): probatio.All(
+                    cv.ensure_list, [probatio.Coerce(MediaType)]
                 ),
-                vol.Optional(ATTR_PROVIDERS): vol.All(cv.ensure_list, [cv.string]),
+                probatio.Optional(ATTR_PROVIDERS): probatio.All(cv.ensure_list, [cv.string]),
             }
         ),
     )
@@ -143,20 +143,20 @@ def register_actions(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_GET_LIBRARY,
         handle_get_library,
-        schema=vol.Schema(
+        schema=probatio.Schema(
             {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): str,
-                vol.Required(ATTR_MEDIA_TYPE): vol.Coerce(MediaType),
-                vol.Optional(ATTR_FAVORITE): cv.boolean,
-                vol.Optional(ATTR_SEARCH): cv.string,
-                vol.Optional(ATTR_LIMIT): cv.positive_int,
-                vol.Optional(ATTR_OFFSET): int,
-                vol.Optional(ATTR_ORDER_BY): cv.string,
-                vol.Optional(ATTR_ALBUM_TYPE): vol.All(
-                    cv.ensure_list, [vol.In([album_type.value for album_type in AlbumType])]
+                probatio.Required(ATTR_CONFIG_ENTRY_ID): str,
+                probatio.Required(ATTR_MEDIA_TYPE): probatio.Coerce(MediaType),
+                probatio.Optional(ATTR_FAVORITE): cv.boolean,
+                probatio.Optional(ATTR_SEARCH): cv.string,
+                probatio.Optional(ATTR_LIMIT): cv.positive_int,
+                probatio.Optional(ATTR_OFFSET): int,
+                probatio.Optional(ATTR_ORDER_BY): cv.string,
+                probatio.Optional(ATTR_ALBUM_TYPE): probatio.All(
+                    cv.ensure_list, [probatio.In([album_type.value for album_type in AlbumType])]
                 ),
-                vol.Optional(ATTR_ALBUM_ARTISTS_ONLY): cv.boolean,
-                vol.Optional(ATTR_USERNAME): cv.string,
+                probatio.Optional(ATTR_ALBUM_ARTISTS_ONLY): cv.boolean,
+                probatio.Optional(ATTR_USERNAME): cv.string,
             }
         ),
         supports_response=SupportsResponse.ONLY,
@@ -169,13 +169,13 @@ def register_actions(hass: HomeAssistant) -> None:
         SERVICE_PLAY_MEDIA_ADVANCED,
         entity_domain=MEDIA_PLAYER_DOMAIN,
         schema={
-            vol.Required(ATTR_MEDIA_ID): vol.All(cv.ensure_list, [cv.string]),
-            vol.Optional(ATTR_MEDIA_TYPE): vol.Coerce(MediaType),
-            vol.Optional(ATTR_MEDIA_ENQUEUE): vol.Coerce(QueueOption),
-            vol.Optional(ATTR_ARTIST): cv.string,
-            vol.Optional(ATTR_ALBUM): cv.string,
-            vol.Optional(ATTR_RADIO_MODE): vol.Coerce(bool),
-            vol.Optional(ATTR_USERNAME): cv.string,
+            probatio.Required(ATTR_MEDIA_ID): probatio.All(cv.ensure_list, [cv.string]),
+            probatio.Optional(ATTR_MEDIA_TYPE): probatio.Coerce(MediaType),
+            probatio.Optional(ATTR_MEDIA_ENQUEUE): probatio.Coerce(QueueOption),
+            probatio.Optional(ATTR_ARTIST): cv.string,
+            probatio.Optional(ATTR_ALBUM): cv.string,
+            probatio.Optional(ATTR_RADIO_MODE): probatio.Coerce(bool),
+            probatio.Optional(ATTR_USERNAME): cv.string,
         },
         func="_async_handle_play_media",
     )
@@ -185,10 +185,10 @@ def register_actions(hass: HomeAssistant) -> None:
         SERVICE_PLAY_ANNOUNCEMENT,
         entity_domain=MEDIA_PLAYER_DOMAIN,
         schema={
-            vol.Required(ATTR_URL): cv.string,
-            vol.Optional(ATTR_USE_PRE_ANNOUNCE): vol.Coerce(bool),
-            vol.Optional(ATTR_PRE_ANNOUNCE_URL): cv.string,
-            vol.Optional(ATTR_ANNOUNCE_VOLUME): vol.Coerce(int),
+            probatio.Required(ATTR_URL): cv.string,
+            probatio.Optional(ATTR_USE_PRE_ANNOUNCE): probatio.Coerce(bool),
+            probatio.Optional(ATTR_PRE_ANNOUNCE_URL): cv.string,
+            probatio.Optional(ATTR_ANNOUNCE_VOLUME): probatio.Coerce(int),
         },
         func="_async_handle_play_announcement",
     )
@@ -198,8 +198,8 @@ def register_actions(hass: HomeAssistant) -> None:
         SERVICE_TRANSFER_QUEUE,
         entity_domain=MEDIA_PLAYER_DOMAIN,
         schema={
-            vol.Optional(ATTR_SOURCE_PLAYER): cv.entity_id,
-            vol.Optional(ATTR_AUTO_PLAY): vol.Coerce(bool),
+            probatio.Optional(ATTR_SOURCE_PLAYER): cv.entity_id,
+            probatio.Optional(ATTR_AUTO_PLAY): probatio.Coerce(bool),
         },
         func="_async_handle_transfer_queue",
     )
