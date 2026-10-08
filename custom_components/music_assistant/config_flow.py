@@ -33,7 +33,7 @@ from music_assistant_models.errors import (
     AuthenticationRequired,
     InvalidToken,
 )
-import voluptuous as vol
+import probatio
 
 from .const import (
     AUTH_SCHEMA_VERSION,
@@ -47,13 +47,13 @@ DEFAULT_TITLE = "Music Assistant"
 DEFAULT_URL = "http://mass.local:8095"
 
 
-STEP_USER_SCHEMA = vol.Schema(
+STEP_USER_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_URL): str,
-        vol.Required(CONF_VERIFY_SSL, default=True): bool,
+        probatio.Required(CONF_URL): str,
+        probatio.Required(CONF_VERIFY_SSL, default=True): bool,
     }
 )
-STEP_AUTH_TOKEN_SCHEMA = vol.Schema({vol.Required(CONF_TOKEN): str})
+STEP_AUTH_TOKEN_SCHEMA = probatio.Schema({probatio.Required(CONF_TOKEN): str})
 
 
 def _parse_zeroconf_server_info(properties: dict[str, str]) -> ServerInfoMessage:
@@ -393,7 +393,7 @@ class MusicAssistantConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="auth_manual",
-            data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+            data_schema=probatio.Schema({probatio.Required(CONF_TOKEN): str}),
             description_placeholders={"url": self.url},
             errors=errors,
         )
